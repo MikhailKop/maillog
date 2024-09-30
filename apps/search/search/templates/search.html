@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %} Search    {% endblock title %}
+{% block content %} 
+
+<div class="row">
+    <div class="col s6 offset-s3">
+        <form class="main " method="post" id="ipForm" style="margin: 40px auto;">
+            {% csrf_token %}
+            <div id="forminner">
+                <div class="row">
+                    <div class="col s12">
+                        <h5 class="center-align teal-text">Search</h5>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="input-field col s12">
+                        <input id="address" name="address" type="text"></input>
+                        <label for="address">Введите адрес получателя</label>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <button class="btn waves-effect waves-light" type="submit" id="submitBtn">Найти
+                        <i class="material-icons right">send</i>
+                    </button>
+                </div>
+
+                <div id="progress" class="progress" style="display: none;">
+                    <div class="indeterminate"></div>
+                </div>
+
+                <div class="row">
+                    <table id="resTable">
+                        <thead>
+                        <tr>
+                            <th>Дата, время</th>
+                            <th>Строка лога</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>           
+                </div>
+                
+            </div>
+      </form>
+    </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script>
+    
+    $("#submitBtn").click(function (event) {
+        event.preventDefault();
+        $("#progress").css({'display': 'block'});
+        $("#submitBtn").prop("disabled", true);
+        $('table#resTable').find("tbody tr").remove()
+
+        let data = new FormData($('#ipForm')[0]);
+        $.ajax({
+            type: "POST",
+            enctype: 'multipart/form-data',
+            url: "/maillog/",  
+            data: data,
+            processData: false,
+            contentType: false,
+            cache: false,
+            timeout: 120000,
+            success: function (data) {
+                let address_infos = JSON.parse(JSON.stringify(data));
+                let table = $('table#resTable');
+                let num = 0;
+                let limit_flag = false;
+                $.each(address_infos, function (index, value) {
+                    if (index == 100){
+                        limit_flag = true
+                        return false;
+                    }
+                    let tr = "<tr>";
+                    tr += "<td>" + value.created + "</td>";
+                    tr += "<td>" + value.str + "</td>";
+                    tr += "</tr>";
+                    table.append(tr);
+                    num += 1;
+                });
+
+                $("#progress").css({'display': 'none'});
+                $("#submitBtn").prop("disabled", false);
+                if (limit_flag) {
+                    M.toast({html: 'Превышен лимит. Выведено первые ' + num + ' строк.', classes: 'rounded'});
+                } else { 
+                    M.toast({html: 'Готово! Получено ' + num + ' строк.', classes: 'rounded'});
+                }s
+            },
+            error: function (e) {
+                alert(e.responseText);
+                $("#progress").css({'display': 'none'});
+                $("#submitBtn").prop("disabled", false);
+            }
+        });
+    });
+
+</script>
+{% endblock content %}
